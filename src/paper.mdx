@@ -1,0 +1,224 @@
+---
+title: "ActiveSaddler: Automated Curriculum Learning for Agent Harness Optimization"
+authors:
+  - name: Sungho Park
+    institution: POSTECH
+    notes: ["*"]
+  - name: Wonjoong Kim
+    institution: KAIST
+    notes: ["*"]
+  - name: Jue Zhang
+    institution: Microsoft
+    notes: ["†"]
+  - name: Wook-Shin Han
+    institution: POSTECH
+    notes: ["†"]
+  - name: Pengfei Gao
+    institution: Microsoft
+  - name: Chanyoung Park
+    institution: KAIST
+  - name: Yongqiang Yao
+    institution: Microsoft
+  - name: Rao Fu
+    institution: Microsoft
+  - name: Elsie Nallipogu
+    institution: Microsoft
+  - name: Qingwei Lin
+    institution: Microsoft
+  - name: Victor Rühle
+    institution: Microsoft
+notes:
+  - symbol: "*"
+    text: Work done during an internship at Microsoft.
+  - symbol: "†"
+    text: Corresponding authors.
+links:
+  - name: Code (coming soon)
+    url: ""
+    icon: ri:github-line
+    disabled: true
+  - name: arXiv (coming soon)
+    url: ""
+    icon: academicons:arxiv
+    disabled: true
+theme: device
+favicon: favicon.svg
+description: "ActiveSaddler adapts which training scenarios drive agent harness optimization: a non-stationary bandit over failure-pattern arms whose curriculum co-evolves with the harness. +4.4 pp on GAIA2 and +7.5 pp on Terminal-Bench 2.0 over AutoSaddler."
+thumbnail: og-image.png
+---
+
+import HighlightedSection from "./components/HighlightedSection.astro";
+import Figure from "./components/Figure.astro";
+import Picture from "./components/Picture.astro";
+import TwoColumns from "./components/TwoColumns.astro";
+import Table from "./components/Table.astro";
+import Hero from "./components/Hero.astro";
+import CurriculumReplay from "./components/Curriculum/CurriculumReplay.tsx";
+import ArmLifecycle from "./components/Curriculum/ArmLifecycle.tsx";
+
+export const components = { table: Table };
+
+<Hero />
+
+<HighlightedSection>
+
+## Abstract
+
+Automated harness optimization can substantially improve LLM agents by iteratively updating their prompts, tool interfaces, and control logic from execution feedback. However, existing methods primarily optimize *how* the harness is updated while largely fixing *which training scenarios* generate the feedback that drives those updates. As the harness evolves, the scenarios most useful for further optimization can change, suggesting that the training curriculum itself should adapt alongside the harness. We formulate this missing dimension of harness optimization as an automated curriculum learning problem and introduce **ActiveSaddler**. ActiveSaddler models the evolving curriculum as a non-stationary bandit with dynamically instantiated optimization targets. It abstracts recurring failures into reusable failure-pattern arms, estimates the potential learning progress from further targeting each pattern, and adaptively balances revisiting known weaknesses with exploring unseen scenarios for new ones. Optimization outcomes continually update both the set of discovered failure patterns and their priorities, allowing the curriculum to co-evolve with the harness. Experiments on GAIA2 and Terminal-Bench 2.0 show that ActiveSaddler consistently discovers stronger harnesses, improving test Pass@1 by **4.4** and **7.5** percentage points over the same harness optimizer using a scenario order fixed before optimization, respectively. Ablations further show that these gains depend on dynamically constructing optimization targets, estimating their evolving utility, and balancing continued optimization with new failure discovery. Together, these results establish automated curriculum learning as a new crucial optimization dimension for harness optimization.
+
+</HighlightedSection>
+
+## Method Overview
+
+Existing harness optimizers train on scenarios in an order fixed up front. ActiveSaddler makes this curriculum ***active***: it **proactively** picks which scenarios the optimizer sees next as the harness evolves, leaving the optimizer itself unchanged.
+
+We model this choice as a **non-stationary multi-armed bandit** whose arms are **failure patterns**: harness weaknesses shared by several failed runs. Pulling an arm aims the next round of optimization at that weakness.
+
+<Figure>
+  <Picture slot="figure" src="../assets/main_figure.pdf" alt="Overview of ActiveSaddler: Exploration Controller, Arm Prioritizer with stochastic selection, harness optimization, and Failure-Pattern Extractor forming a loop" />
+  <Fragment slot="caption">**Overview of ActiveSaddler.** At each iteration, the curriculum chooses between exploring unseen scenarios and revisiting an instantiated arm, optimizes the harness on the selected scenario batch, and updates its state: the failure-pattern arms, their priorities, and the unseen pool.</Fragment>
+</Figure>
+
+### Three Key Components
+
+This framing raises two challenges. **First, the arms are not given in advance.** Weaknesses surface only when failures are diagnosed, and new ones keep appearing as the harness changes. **Second, each iteration runs only a few scenarios.** Scenarios the optimizer has not run yet may hide weaknesses no one has seen, so the curriculum must weigh fixing the weaknesses it already knows (exploitation) against running unseen scenarios to find new ones (exploration). The Failure-Pattern Extractor addresses the first challenge; the Arm Prioritizer and the Exploration Controller address the second.
+
+<div class="not-prose my-8 grid gap-4 md:grid-cols-3">
+  <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700">
+    <div class="text-sm font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-300">Failure-Pattern Extractor</div>
+    <p class="mt-1.5 text-[0.95rem] font-semibold text-zinc-900 dark:text-zinc-100">Where do the arms come from?</p>
+    <p class="mt-2 text-[0.95rem] leading-relaxed text-zinc-700 dark:text-zinc-300">Groups failures caused by the same weakness into one arm, registering a new arm when a new weakness appears. The pool starts empty and grows online.</p>
+  </div>
+  <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700">
+    <div class="text-sm font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-300">Arm Prioritizer</div>
+    <p class="mt-1.5 text-[0.95rem] font-semibold text-zinc-900 dark:text-zinc-100">Which known weakness next?</p>
+    <p class="mt-2 text-[0.95rem] leading-relaxed text-zinc-700 dark:text-zinc-300">An LLM scores each arm's <b>learning progress</b> (severity, fixability, breadth, side-effect risk) and samples one by score. Scores are refreshed at every pull.</p>
+  </div>
+  <div class="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-700">
+    <div class="text-sm font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-300">Exploration Controller</div>
+    <p class="mt-1.5 text-[0.95rem] font-semibold text-zinc-900 dark:text-zinc-100">Fix known weaknesses, or look for new ones?</p>
+    <p class="mt-2 text-[0.95rem] leading-relaxed text-zinc-700 dark:text-zinc-300">Each iteration, it either <b>Pulls</b> a known arm (exploit) or <b>Draws</b> unseen scenarios that may reveal new weaknesses (explore).</p>
+  </div>
+</div>
+
+<details class="my-6 rounded-xl border border-zinc-200 px-5 py-3 dark:border-zinc-700">
+<summary class="cursor-pointer font-semibold">One iteration of ActiveSaddler, step by step</summary>
+
+1. **Explore or exploit.** The Exploration Controller looks at the current harness, the known arms, the scenarios not yet seen and the optimization history, and chooses to Draw or Pull.
+2. **Draw.** Pick a small batch of scenarios the optimizer has not seen yet.
+3. **Pull.** Otherwise, score every arm, sample one by priority, and build the batch from the scenarios where that weakness showed up.
+4. **Optimize.** Run the batch with the current harness and let the optimizer improve it (here AutoSaddler: diagnose, patch, re-run, validate on the dev set, reflect, evolve).
+5. **Extract.** Describe the failures seen before and after the patch, and match each to an existing arm, a combination of arms, or a new arm.
+6. **Update.** Record what happened and repeat until the rollout budget runs out, then return the harness with the best dev score.
+
+</details>
+
+## Watch the Curriculum Co-evolve
+
+Here are those three components at work on the actual GAIA2 run behind the paper's results, replayed iteration by iteration. Each iteration unfolds in three steps:
+
+1. The **Exploration Controller** decides whether to *Draw* or *Pull*, and you can read its own reasoning.
+2. On a pull, the **Arm Prioritizer** re-scores every arm, and the needle samples one by priority.
+3. The harness optimizer patches on that batch.
+
+Watch probability mass shift as weaknesses get fixed and new ones appear. Hover an arm to see its scores, or drag the timeline to scrub.
+
+<div class="not-prose my-8">
+  <CurriculumReplay client:visible />
+</div>
+
+## Inside the Arm Pool
+
+Every row is one failure-pattern arm, and every column is one arm-selection iteration. Some arms are **resolved**: their priority collapses after an accepted patch, as with P3. Others keep **recurring**: they gain supporting scenarios and are pulled again and again, as with P8. Click any arm to trace its lifecycle, and jump into the replay at any of its pulls.
+
+<div class="not-prose my-8">
+  <ArmLifecycle client:visible />
+</div>
+
+## Key Results
+
+ActiveSaddler finds stronger harnesses than every baseline on both benchmarks, with the same `gpt-5.5` models and the same rollout budget (1,400 rollouts on GAIA2, 490 on Terminal-Bench 2.0).
+
+<TwoColumns>
+<Figure slot="left">
+  <Picture slot="figure" src="../assets/gaia2_six_methods_scenarios_vs_dev_accuracy.pdf" alt="GAIA2: best-so-far dev accuracy versus cumulative task-agent rollouts for six methods" />
+  <Fragment slot="caption">**GAIA2.** Best-so-far dev accuracy over the rollout budget: ActiveSaddler reaches 63.1%, while the best baseline stops at 58.5%.</Fragment>
+</Figure>
+<Figure slot="right">
+  <Picture slot="figure" src="../assets/tbench2_four_methods_scenarios_vs_best_dev_accuracy.pdf" alt="Terminal-Bench 2.0: best-so-far dev accuracy versus cumulative task-agent rollouts" />
+  <Fragment slot="caption">**Terminal-Bench 2.0.** ActiveSaddler reaches 89.5%, while the best baseline stops at 78.9%.</Fragment>
+</Figure>
+</TwoColumns>
+
+### Test Results
+
+| Harness | Type | GAIA2 Test (300) | Terminal-Bench 2.0 Test (40) |
+| :--- | :---: | :---: | :---: |
+| Default Agent / Terminus 2 | Manual | 53.6 ± 1.1 | 64.2 ± 2.9 |
+| Terminus-KIRA | Manual | – | 69.2 ± 3.8 |
+| GEPA | Optimizer | 54.2 ± 2.2 | 65.8 ± 5.2 |
+| Meta-Harness | Optimizer | 54.2 ± 1.2 | 66.7 ± 5.2 |
+| AutoSaddler | Optimizer | 55.4 ± 1.2 | 72.5 ± 0.0 |
+| AutoSaddler w/ Category Acc. Order | Fixed curriculum | 55.9 ± 1.3 | 70.8 ± 1.4 |
+| AutoSaddler w/ Scenario Acc. Order | Fixed curriculum | 55.7 ± 1.2 | 73.3 ± 1.4 |
+| **ActiveSaddler** | **Adaptive curriculum** | **59.8 ± 1.0** | **80.0 ± 2.5** |
+
+<p class="text-center text-base text-zinc-600 dark:text-zinc-400">Test Pass@1 (mean ± std. over three test-time executions). Fixed easy-to-hard curricula barely help AutoSaddler, and can even hurt it; the adaptive curriculum adds <b>+4.4</b> and <b>+7.5</b> pp.</p>
+
+## Ablation Studies
+
+Every component matters. Removing any one of them erases most of the gain.
+
+| Variant | GAIA2 | Δ | TB2 | Δ |
+| :--- | :---: | :---: | :---: | :---: |
+| **ActiveSaddler** | **59.8 ± 1.0** | | **80.0 ± 2.5** | |
+| w/o failure-pattern arms (category arms) | 56.8 ± 0.8 | −3.0 | 69.2 ± 2.9 | −10.8 |
+| w/o failure-pattern arms (scenario arms) | 56.2 ± 0.2 | −3.6 | 73.3 ± 3.8 | −6.7 |
+| w/o Arm Prioritizer | 55.3 ± 2.1 | −4.5 | 72.5 ± 2.5 | −7.5 |
+| w/o Exploration Controller (explore every 5 iters) | 55.3 ± 0.9 | −4.5 | 71.7 ± 1.4 | −8.3 |
+
+### RQ1: Do Failure-Pattern Arms Matter?
+
+Replacing failure-pattern arms with category or scenario arms drops Pass@1 by **3.0–3.6 pp** on GAIA2 and **6.7–10.8 pp** on TB2. A failure-pattern arm keeps an unresolved weakness as a target, so the curriculum can revisit it and refine patches that did not work. **Category arms are too coarse**: successes on some scenarios mask weaknesses left unresolved in others. **Scenario arms are too fine**: one weakness is scattered across many arms and is rarely revisited under a limited budget. As a result, failure-pattern arms hit still-failing scenarios far more often, spending less of the budget on scenarios the harness already passes.
+
+<Figure>
+  <div slot="figure" class="mx-auto w-full max-w-[26rem]">
+    <Picture src="../assets/rq1_quantitative_analysis.pdf" alt="Failure hit rate by arm definition: failure pattern, category, scenario" />
+  </div>
+  <Fragment slot="caption">**Failure hit rate:** the share of iterations whose batch includes a scenario that is still failing.</Fragment>
+</Figure>
+
+### RQ2: Does Adaptive Arm Prioritization Matter?
+
+Giving every arm the same priority drops Pass@1 by **4.5 pp** on GAIA2 and **7.5 pp** on TB2. With adaptive scoring, priority keeps moving across arms rather than settling on a fixed few (see P3 and P8 in the explorer above). Because the budget follows each weakness's changing learning potential, more of the observed failures end up fixed than under uniform priority.
+
+<Figure>
+  <div slot="figure" class="mx-auto w-full max-w-[26rem]">
+    <Picture src="../assets/rq2_quantitative_analysis.pdf" alt="Failure-to-success conversion rate for ActiveSaddler, without Arm Prioritizer, and AutoSaddler" />
+  </div>
+  <Fragment slot="caption">**Failure-to-success conversion rate:** the share of observed failures that the optimized harness later fixes.</Fragment>
+</Figure>
+
+### RQ3: Does Adaptive Exploration Matter?
+
+Replacing the Exploration Controller with a fixed schedule (explore every 5 iterations) drops Pass@1 by **4.5 pp** on GAIA2 and **8.3 pp** on TB2: *when* to explore matters. The controller pulls while worthwhile unresolved weaknesses remain and draws once the known arms have little left to teach. At its pulls, 2.0× (GAIA2) and 6.9× (TB2) as many arms are unresolved as at its draws, while a fixed schedule is blind to this (0.8× and 1.3×).
+
+<Figure>
+  <Picture slot="figure" src="../assets/pattern_discovery_activesaddler.pdf" alt="Distinct failure patterns discovered over iterations, with annotated Draw and Pull rationales at iterations 2, 7, 24 and 30" />
+  <Fragment slot="caption">**Exploration over the run:** failure patterns discovered over time, with the controller's own reasoning at four Draw/Pull decisions.</Fragment>
+</Figure>
+
+## Conclusion
+
+We introduced ActiveSaddler, an automated curriculum-learning approach for harness optimization that adapts which training scenarios generate the execution feedback used for each harness update. Rather than fixing scenario selection before optimization, ActiveSaddler formulates curriculum construction as a non-stationary bandit that dynamically instantiates failure-pattern arms, prioritizes them by their evolving learning potential, and balances revisiting known weaknesses with exploring unseen scenarios. Across GAIA2 and Terminal-Bench 2.0, ActiveSaddler improves test Pass@1 by **4.4** and **7.5** percentage points over the same harness optimizer with a fixed scenario order, respectively, while also outperforming existing harness optimizers and fixed curricula. Our ablations further show that these gains rely on failure-pattern arms, adaptive arm prioritization, and adaptive exploration. Overall, these results establish automated curriculum learning as a complementary dimension of harness optimization: performance depends not only on how feedback is used for updates, but also on which training scenarios generate that feedback.
+
+## BibTeX
+
+```bibtex
+@article{park2026activesaddler,
+  title={ActiveSaddler: Automated Curriculum Learning for Agent Harness Optimization},
+  author={Sungho Park and Wonjoong Kim and Jue Zhang and Wook-Shin Han and Pengfei Gao and Chanyoung Park and Yongqiang Yao and Rao Fu and Elsie Nallipogu and Qingwei Lin and Victor R{\"u}hle},
+  journal={arXiv preprint},
+  year={2026}
+}
+```

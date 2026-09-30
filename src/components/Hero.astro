@@ -1,0 +1,69 @@
+---
+import HeroStream from "./HeroStream.tsx";
+
+// One card per benchmark, both measured against AutoSaddler (the same optimizer
+// with a fixed scenario order). The headline number is the improvement; the
+// line below gives the raw values it comes from. Cost ratios are the paper's
+// figures divided out (1,360 / 298, 220 / 128).
+const benchmarks = [
+  {
+    name: "GAIA2",
+    stats: [
+      { big: "+4.4", unit: "pp", what: "higher test Pass@1", basis: "59.8% vs. 55.4%" },
+      { big: "4.6", unit: "×", what: "cheaper optimization", basis: "$298 vs. $1,360 to reach 58.5% dev" },
+    ],
+  },
+  {
+    name: "Terminal-Bench 2.0",
+    stats: [
+      { big: "+7.5", unit: "pp", what: "higher test Pass@1", basis: "80.0% vs. 72.5%" },
+      { big: "1.7", unit: "×", what: "cheaper optimization", basis: "$128 vs. $220 to reach 78.9% dev" },
+    ],
+  },
+];
+---
+
+<section class="not-prose mb-14">
+  <div class="cl-root w-full">
+    <p class="mx-auto mb-8 text-center text-lg leading-relaxed text-balance sm:text-xl" style="color: var(--cl-ink-2)">
+      Harness optimizers decide <em>how</em> to update an agent's harness.
+      <strong style="color: var(--cl-ink)">ActiveSaddler</strong> decides <em>which training scenarios</em> should teach it next: a curriculum that
+      <span class="font-semibold" style="color: var(--cl-accent)">co-evolves with the harness</span>.
+    </p>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {
+        benchmarks.map((b) => (
+          <div class="rounded-2xl border px-5 py-4" style="border-color: var(--cl-border); background: var(--cl-surface)">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-[0.8rem] font-semibold tracking-wide uppercase" style="color: var(--cl-muted)">{b.name}</span>
+              <span class="text-[0.72rem]" style="color: var(--cl-muted)">vs. AutoSaddler</span>
+            </div>
+            <div class="mt-2.5 grid grid-cols-2">
+              {
+                b.stats.map((k, i) => (
+                  <div class={i ? "border-l pl-4" : "pr-4"} style="border-color: var(--cl-border)">
+                    <div class="text-[2.3rem] leading-none font-semibold tracking-tight" style="color: var(--cl-good)">
+                      {k.big}{k.unit === "×" ? <span class="font-medium">×</span> : <span class="ml-1 text-lg leading-none font-semibold">{k.unit}</span>}
+                    </div>
+                    <div class="mt-1.5 text-[0.82rem] font-medium" style="color: var(--cl-ink-2)">{k.what}</div>
+                    <div class="text-[0.75rem]" style="color: var(--cl-muted)">{k.basis}</div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <figure class="mt-10">
+      <HeroStream client:visible />
+      <figcaption class="mt-2 text-center text-[0.85rem]" style="color: var(--cl-muted)">
+        <b style="color: var(--cl-ink-2)">What the agent practices on, over time.</b> Each colored band is one weakness ActiveSaddler found in the
+        agent while training on GAIA2; the thicker the band, the more likely it is to be practiced next. Bands fade once a weakness is fixed, and new ones
+        appear as more are discovered. Hover a band to see which weakness it is.
+      </figcaption>
+    </figure>
+  </div>
+</section>

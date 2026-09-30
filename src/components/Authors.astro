@@ -1,0 +1,59 @@
+---
+import type { Author } from "../types/types";
+
+interface Props {
+  authors: Author[];
+}
+
+const { authors } = Astro.props;
+
+const authorsPerRow = 5;
+const authorRows = Array.from(
+  { length: Math.ceil(authors.length / authorsPerRow) },
+  (_, index) =>
+    authors.slice(index * authorsPerRow, (index + 1) * authorsPerRow),
+);
+const institutions = [
+  ...new Set(
+    authors
+      .map((author) => author.institution)
+      .filter((institution): institution is string => Boolean(institution)),
+  ),
+];
+const institutionNumbers = new Map(
+  institutions.map((institution, index) => [institution, index + 1]),
+);
+---
+
+<div class="links w-full">
+  {
+    authorRows.map((row) => (
+      <div class="flex flex-wrap justify-center gap-x-5 gap-y-1 text-base leading-snug sm:text-lg">
+        {row.map((author) => (
+          <div class="text-center font-semibold whitespace-nowrap">
+            {author.url ? <a href={author.url}>{author.name}</a> : author.name}
+            {(author.institution || author.notes) && (
+              <sup class="ml-0.5 text-xs font-semibold sm:text-sm">
+                {author.institution &&
+                  institutionNumbers.get(author.institution)}
+                {author.notes?.join("")}
+              </sup>
+            )}
+          </div>
+        ))}
+      </div>
+    ))
+  }
+  {
+    institutions.length > 0 && (
+      <div class="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm leading-snug text-zinc-700 sm:text-base dark:text-zinc-300">
+        {institutions.map((institution, index) => (
+          <div class="whitespace-nowrap">
+            <sup class="mr-0.5 text-xs sm:text-sm">{index + 1}</sup>
+            {institution}
+          </div>
+        ))}
+      </div>
+    )
+  }
+</div>
