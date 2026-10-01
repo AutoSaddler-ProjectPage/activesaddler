@@ -156,7 +156,7 @@ export default function CurriculumReplay() {
       className="cl-root not-prose relative scroll-mt-6 rounded-2xl border p-3 outline-none focus-visible:ring-2 sm:p-5"
       style={{ background: "var(--cl-surface)", borderColor: "var(--cl-border)", boxShadow: "var(--cl-shadow)" }}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={`inline-block size-2.5 shrink-0 rounded-full ${playing ? "cl-live-dot" : ""}`}
@@ -189,6 +189,12 @@ export default function CurriculumReplay() {
         />
       </div>
 
+      {/* models and reasoning effort, so the cost figures can be read in context */}
+      <div className="mb-3 text-[0.75rem]" style={{ color: "var(--cl-muted)" }}>
+        Task agent: <code className="font-mono">gpt-5.5</code> (reasoning: medium) · Optimizer: <code className="font-mono">gpt-5.5</code>{" "}
+        (reasoning: xhigh) · Cost covers both
+      </div>
+
       <StatStrip iter={iter} animate={animate} width={width} />
 
       {/* Navigation (stats + timeline) sits above the stage, so it never moves. */}
@@ -206,6 +212,16 @@ export default function CurriculumReplay() {
             Draw unseen scenarios
           </Legend>
           <Legend glyph={<circle cx="6" cy="6" r="4" fill="var(--cl-good)" />}>New best dev accuracy</Legend>
+          <Legend
+            glyph={
+              <>
+                <circle cx="6" cy="6" r="4" fill="var(--cl-ink-2)" />
+                <path d="M4.2 6.1l1.2 1.2 2.5-2.6" fill="none" stroke="var(--cl-surface)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+              </>
+            }
+          >
+            Patch accepted
+          </Legend>
           <Legend glyph={<circle cx="6" cy="6" r="3" fill="none" stroke="var(--cl-muted)" strokeWidth="1.25" />}>Dev evaluation</Legend>
           <span className="ml-auto hidden sm:inline">Drag the timeline · ← → to step · space to play</span>
         </div>

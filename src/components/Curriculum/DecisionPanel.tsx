@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Iter, Rationales } from "./types";
-import { ARM_BY_P, armColor, armsCreatedAt, iterAt, pct, rankOf } from "./data";
+import { ARM_BY_P, armColor, iterAt, pct, rankOf } from "./data";
 import { Icon } from "./icons";
 
 // Fixed card heights (px): content changes inside, the layout never reflows.
 // Long text is clamped; only an explicit "Show full reasoning" click grows a card.
-const CARD_H = { controller: 242, prioritizer: 393, outcome: 183 };
+const CARD_H = { controller: 242, prioritizer: 393, outcome: 151 };
 
 type Props = {
   iter: Iter;
@@ -158,7 +158,6 @@ export default function DecisionPanel({ iter, phase, focusArm, rationales }: Pro
   const arm = shownP != null ? ARM_BY_P.get(shownP) : undefined;
   const armRationale = shownP != null ? rat?.arms?.[String(shownP)] : undefined;
 
-  const newArms = armsCreatedAt(iter.it);
   const out = iter.outcome;
   const k = iter.batch.length;
   const newBest = prev ? iter.bestDev > prev.bestDev + 1e-9 : false;
@@ -286,22 +285,6 @@ export default function DecisionPanel({ iter, phase, focusArm, rationales }: Pro
                     ▲ NEW BEST {pct(iter.bestDev)}
                   </span>
                 )}
-              </div>
-            )}
-            {newArms.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span style={{ color: "var(--cl-muted)" }}>Extractor registered</span>
-                {newArms.map((a) => (
-                  <span
-                    key={a.p}
-                    title={a.label}
-                    className="cl-pop inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.72rem] font-semibold"
-                    style={{ background: "var(--cl-good-soft)", color: "var(--cl-good)" }}
-                  >
-                    <span className="inline-block size-2 rounded-full" style={{ background: armColor(a.p) }} />
-                    +P{a.p}
-                  </span>
-                ))}
               </div>
             )}
           </div>

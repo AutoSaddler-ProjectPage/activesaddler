@@ -1,35 +1,16 @@
 import { useState } from "react";
 import { area, curveMonotoneX } from "d3-shape";
 import { scaleLinear } from "d3-scale";
-import { ARMS, ARM_BY_P, ITERS, STACK_ORDER, armColor, pct } from "./Curriculum/data";
+import { ARMS, ARM_BY_P, ITERS, STACK_ORDER, STREAM, armColor, pct, type StreamCol } from "./Curriculum/data";
 import { useElementWidth, useReducedMotion } from "./Curriculum/hooks";
 
 const PULLS = ITERS.filter((d) => d.action === "pull");
 /** Legend: the paper's top-10 arms by name; the other arms as one swatch row. */
 const NAMED = ARMS.filter((a) => a.slot != null).sort((a, b) => a.slot! - b.slot!);
 const REST = ARMS.filter((a) => a.slot == null);
-type Col = { it: number; y0: number[]; y1: number[] };
-/**
- * Cumulative band edges per arm-selection iteration, in the paper figure's
- * stacking (rq2_arm_lifecycle_grid_stack): the named top-10 from the bottom in
- * paper order, then its "Other" region split into the 25 remaining arms.
- * Only the bottom layers of a stack read true, so the top-10 go there.
- */
+type Col = StreamCol;
 const BANDS = STACK_ORDER;
-const stack = (bands: number[]): Col[] =>
-  PULLS.map((d) => {
-    const q = new Map(d.scores!.map((s) => [s.p, s.q]));
-    let acc = 0;
-    const y0: number[] = [];
-    const y1: number[] = [];
-    for (const p of bands) {
-      y0.push(acc);
-      acc += q.get(p) ?? 0;
-      y1.push(acc);
-    }
-    return { it: d.it, y0, y1 };
-  });
-const COLS = stack(BANDS);
+const COLS = STREAM;
 
 /** Hero figure: how the curriculum's pull-probability mass moves across arms over the run. */
 export default function HeroStream() {

@@ -7,12 +7,16 @@ interface Props {
 
 const { authors } = Astro.props;
 
-const authorsPerRow = 5;
-const authorRows = Array.from(
-  { length: Math.ceil(authors.length / authorsPerRow) },
-  (_, index) =>
-    authors.slice(index * authorsPerRow, (index + 1) * authorsPerRow),
-);
+// At most four names per row, balanced across rows so the last row is never a
+// lone name (11 authors -> 4 / 4 / 3, as in the ICLR submission).
+const maxPerRow = 4;
+const rowCount = Math.ceil(authors.length / maxPerRow);
+const authorRows: Author[][] = [];
+for (let r = 0, start = 0; r < rowCount; r++) {
+  const size = Math.ceil((authors.length - start) / (rowCount - r));
+  authorRows.push(authors.slice(start, start + size));
+  start += size;
+}
 const institutions = [
   ...new Set(
     authors

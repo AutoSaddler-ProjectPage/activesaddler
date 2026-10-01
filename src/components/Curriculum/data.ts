@@ -38,6 +38,27 @@ export const STACK_ORDER: number[] = [
 const STACK_RANK = new Map(STACK_ORDER.map((p, i) => [p, i]));
 export const stackRank = (p: number): number => STACK_RANK.get(p) ?? 0;
 
+/** Cumulative band edges of one arm-selection iteration, bands in STACK_ORDER. */
+export type StreamCol = { it: number; y0: number[]; y1: number[] };
+/**
+ * The pull-probability stream (paper figure rq2_arm_lifecycle_grid_stack):
+ * the named top-10 from the bottom in paper order, then the remaining arms.
+ * Only the bottom layers of a stack read true, so the top-10 go there.
+ * Shared by the hero figure and the Replay timeline's arm-focus lane.
+ */
+export const STREAM: StreamCol[] = ITERS.filter((d) => d.scores).map((d) => {
+  const q = new Map(d.scores!.map((s) => [s.p, s.q]));
+  let acc = 0;
+  const y0: number[] = [];
+  const y1: number[] = [];
+  for (const p of STACK_ORDER) {
+    y0.push(acc);
+    acc += q.get(p) ?? 0;
+    y1.push(acc);
+  }
+  return { it: d.it, y0, y1 };
+});
+
 /** First iteration at which each arm received a score. */
 export const FIRST_SCORED: Map<number, number> = (() => {
   const m = new Map<number, number>();
@@ -46,9 +67,6 @@ export const FIRST_SCORED: Map<number, number> = (() => {
   return m;
 })();
 
-/** Arms registered by the extractor at iteration `it` (they join the pool at it + 1). */
-export const armsCreatedAt = (it: number): Arm[] =>
-  ARMS.filter((a) => a.created === it);
 
 let rationalePromise: Promise<Rationales> | null = null;
 /** Verbatim LLM rationales are ~220 KB, so they load on demand in their own chunk. */
