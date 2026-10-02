@@ -1,69 +1,310 @@
 ---
 import HeroStream from "./HeroStream.tsx";
 
-// One card per benchmark, both measured against AutoSaddler (the same optimizer
-// with a fixed scenario order). The headline number is the improvement; the
-// line below gives the raw values it comes from. Cost ratios are the paper's
-// figures divided out (1,360 / 298, 220 / 128).
-const benchmarks = [
+// Headline results vs. AutoSaddler (same optimizer, same rollout budget), from
+// the paper: Table 1 test Pass@1, and the cost to reach the same dev accuracy
+// (1,360 / 298 = 4.6x, 220 / 128 = 1.7x).
+const rows = [
   {
-    name: "GAIA2",
-    stats: [
-      { big: "+4.4", unit: "pp", what: "higher test Pass@1", basis: "59.8% vs. 55.4%" },
-      { big: "4.6", unit: "×", what: "cheaper optimization", basis: "$298 vs. $1,360 to reach 58.5% dev" },
-    ],
+    bench: "GAIA2",
+    gain: 4.4,
+    acc: { base: 55.4, ours: 59.8 },
+    speed: 4.6,
+    cost: { base: 1360, ours: 298, target: "58.5%" },
   },
   {
-    name: "Terminal-Bench 2.0",
-    stats: [
-      { big: "+7.5", unit: "pp", what: "higher test Pass@1", basis: "80.0% vs. 72.5%" },
-      { big: "1.7", unit: "×", what: "cheaper optimization", basis: "$128 vs. $220 to reach 78.9% dev" },
-    ],
+    bench: "Terminal-Bench 2.0",
+    gain: 7.5,
+    acc: { base: 72.5, ours: 80.0 },
+    speed: 1.7,
+    cost: { base: 220, ours: 128, target: "78.9%" },
   },
 ];
+const usd = (v: number) => "$" + v.toLocaleString("en-US");
 ---
 
 <section class="not-prose mb-14">
   <div class="cl-root w-full">
-    <p class="mx-auto mb-8 text-center text-lg leading-relaxed text-balance sm:text-xl" style="color: var(--cl-ink-2)">
+    <p class="mx-auto mb-10 text-center text-lg leading-relaxed text-balance sm:text-xl" style="color: var(--cl-ink-2)">
       Harness optimizers decide <em>how</em> to update an agent's harness.
       <strong style="color: var(--cl-ink)">ActiveSaddler</strong> decides <em>which training scenarios</em> should teach it next: a curriculum that
       <span class="font-semibold" style="color: var(--cl-accent)">co-evolves with the harness</span>.
     </p>
 
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <!-- Headline results: one panel per benchmark, numbers with their comparison -->
+    <p class="hr-kicker">vs. AutoSaddler · same optimizer, same rollout budget</p>
+    <div class="hr-panels">
       {
-        benchmarks.map((b) => (
-          <div class="rounded-2xl border px-5 py-4" style="border-color: var(--cl-border); background: var(--cl-surface)">
-            <div class="flex items-baseline justify-between gap-2">
-              <span class="text-[0.8rem] font-semibold tracking-wide uppercase" style="color: var(--cl-muted)">{b.name}</span>
-              <span class="text-[0.72rem]" style="color: var(--cl-muted)">vs. AutoSaddler</span>
+        rows.map((r) => (
+          <div class="hr-panel">
+            <div class="hr-bench">{r.bench}</div>
+
+            <div class="hr-metric">
+              <div class="hr-big">
+                <span data-count={r.gain} data-digits="1" data-prefix="+">+{r.gain.toFixed(1)}</span>
+                <span class="hr-unit">pp</span>
+              </div>
+              <div class="hr-what">higher test Pass@1</div>
+              <div class="hr-legend">
+                <span>AutoSaddler <b>{r.acc.base.toFixed(1)}%</b></span>
+                <span>ActiveSaddler <b class="hr-ours">{r.acc.ours.toFixed(1)}%</b></span>
+              </div>
             </div>
-            <div class="mt-2.5 grid grid-cols-2">
-              {
-                b.stats.map((k, i) => (
-                  <div class={i ? "border-l pl-4" : "pr-4"} style="border-color: var(--cl-border)">
-                    <div class="text-[2.3rem] leading-none font-semibold tracking-tight" style="color: var(--cl-good)">
-                      {k.big}{k.unit === "×" ? <span class="font-medium">×</span> : <span class="ml-1 text-lg leading-none font-semibold">{k.unit}</span>}
-                    </div>
-                    <div class="mt-1.5 text-[0.82rem] font-medium" style="color: var(--cl-ink-2)">{k.what}</div>
-                    <div class="text-[0.75rem]" style="color: var(--cl-muted)">{k.basis}</div>
-                  </div>
-                ))
-              }
+
+            <div class="hr-metric">
+              <div class="hr-big">
+                <span data-count={r.speed} data-digits="1" data-prefix="">{r.speed.toFixed(1)}</span>
+                <span class="hr-unit hr-times">×</span>
+              </div>
+              <div class="hr-what">cheaper to {r.cost.target} dev</div>
+              <div class="hr-legend">
+                <span>AutoSaddler <b>{usd(r.cost.base)}</b></span>
+                <span>ActiveSaddler <b class="hr-ours">{usd(r.cost.ours)}</b></span>
+              </div>
             </div>
           </div>
         ))
       }
     </div>
 
-    <figure class="mt-10">
-      <HeroStream client:visible />
-      <figcaption class="mt-2 text-center text-[0.85rem]" style="color: var(--cl-muted)">
-        <b style="color: var(--cl-ink-2)">What the agent practices on, over time.</b> Each colored band is one weakness ActiveSaddler found in the
-        agent while training on GAIA2; the thicker the band, the more likely it is to be practiced next. Bands fade once a weakness is fixed, and new ones
-        appear as more are discovered. Hover a band to see which weakness it is.
+    <!-- The hero figure, hung as a framed print with a museum wall label -->
+    <figure class="hr-gallery mt-14">
+      <div class="hr-frame">
+        <div class="hr-mat">
+          <HeroStream client:visible artwork />
+        </div>
+      </div>
+      <figcaption class="hr-label">
+        <span class="hr-label-id">
+          <span class="hr-artist">ActiveSaddler</span>
+          <span class="hr-title"><i>What the Agent Practices On, Over Time</i></span>
+          <span class="hr-medium">Pull probability over 35 failure patterns, 34 arm-selection iterations · GAIA2</span>
+        </span>
+        <span class="hr-desc">
+          Each band is a weakness the curriculum found in the agent; its thickness is how likely it is to be practiced next. Bands thin out as
+          weaknesses are fixed, and new ones surface as they are discovered. Hover a band to see which weakness it is.
+        </span>
       </figcaption>
     </figure>
   </div>
 </section>
+
+<script>
+  // Count the headline numbers up once they scroll into view.
+  const nums = document.querySelectorAll<HTMLElement>("[data-count]");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!still && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          io.unobserve(e.target);
+          const el = e.target as HTMLElement;
+          const to = Number(el.dataset.count);
+          const digits = Number(el.dataset.digits);
+          const prefix = el.dataset.prefix ?? "";
+          const t0 = performance.now();
+          const tick = (now: number) => {
+            const t = Math.min(1, (now - t0) / 1100);
+            const eased = 1 - Math.pow(1 - t, 3);
+            el.textContent = prefix + (to * eased).toFixed(digits);
+            if (t < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.6 },
+    );
+    nums.forEach((n) => io.observe(n));
+  }
+</script>
+
+<style>
+  /* our palette: the title's indigo → blue → teal gradient */
+  .hr-panels {
+    --g1: var(--color-indigo-600);
+    --g2: var(--color-blue-600);
+    --g3: var(--color-teal-500);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  :global([data-theme="dark"]) .hr-panels {
+    --g1: var(--color-indigo-300);
+    --g2: var(--color-sky-300);
+    --g3: var(--color-teal-300);
+  }
+  @media (prefers-color-scheme: dark) {
+    :global([data-theme="device"]) .hr-panels {
+      --g1: var(--color-indigo-300);
+      --g2: var(--color-sky-300);
+      --g3: var(--color-teal-300);
+    }
+  }
+  .hr-kicker {
+    margin: 0 0 0.9rem;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--cl-accent);
+  }
+  .hr-panel {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.25rem 1.5rem;
+    padding: 1.25rem 1.4rem 1.3rem;
+    border-radius: 1.25rem;
+    background: var(--cl-surface);
+    border: 1px solid var(--cl-border);
+    overflow: hidden;
+  }
+  /* gradient hairline on top of each panel */
+  .hr-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, var(--g1), var(--g2), var(--g3));
+  }
+  .hr-bench {
+    grid-column: 1 / -1;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--cl-ink);
+  }
+  .hr-big {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    line-height: 1;
+  }
+  .hr-big > span:first-child {
+    font-size: clamp(2.3rem, 4.6vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(100deg, var(--g1), var(--g2) 55%, var(--g3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hr-unit {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--g2);
+  }
+  .hr-times {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .hr-what {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--cl-ink-2);
+  }
+  /* comparison values: one row per method, name left, value right */
+  .hr-legend {
+    display: grid;
+    gap: 1px;
+    margin-top: 0.85rem;
+    font-size: 0.7rem;
+    color: var(--cl-muted);
+  }
+  .hr-legend > span {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .hr-legend b {
+    font-weight: 600;
+    color: var(--cl-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .hr-legend b.hr-ours {
+    color: var(--g1);
+  }
+  @media (max-width: 760px) {
+    .hr-panels {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) {
+    /* keep both columns' bars level when a description wraps */
+    .hr-times {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .hr-what {
+      min-height: 2.6em;
+    }
+  }
+
+  /* ---- gallery ---- */
+  .hr-frame {
+    padding: 10px;
+    background: #2a2622;
+    border-radius: 2px;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.06) inset,
+      0 2px 4px rgb(0 0 0 / 0.08),
+      0 24px 48px -18px rgb(0 0 0 / 0.35);
+  }
+  .hr-mat {
+    position: relative;
+    padding: clamp(14px, 4.5%, 42px);
+    background: var(--cl-page);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06), inset 0 3px 8px rgb(0 0 0 / 0.08);
+  }
+  .hr-label {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+    gap: 0.4rem 1.6rem;
+    margin: 1.4rem 0 0;
+    padding: 0.85rem 1rem;
+    border-left: 2px solid var(--cl-ink);
+    background: var(--cl-surface-2);
+    text-align: left;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--cl-ink-2);
+  }
+  .hr-artist {
+    font-weight: 700;
+    font-size: 0.86rem;
+    letter-spacing: 0.02em;
+    color: var(--cl-ink);
+  }
+  .hr-title {
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 0.92rem;
+    color: var(--cl-ink);
+  }
+  .hr-medium {
+    font-size: 0.72rem;
+    color: var(--cl-muted);
+  }
+  .hr-label-id {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .hr-desc {
+    align-self: center;
+  }
+  @media (max-width: 640px) {
+    .hr-label {
+      grid-template-columns: 1fr;
+    }
+  }
+  :global([data-theme="dark"]) .hr-frame {
+    background: #0b0b0c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global([data-theme="device"]) .hr-frame {
+      background: #0b0b0c;
+    }
+  }
+</style>

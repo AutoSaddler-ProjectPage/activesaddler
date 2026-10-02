@@ -13,13 +13,17 @@ const BANDS = STACK_ORDER;
 const COLS = STREAM;
 
 /** Hero figure: how the curriculum's pull-probability mass moves across arms over the run. */
-export default function HeroStream() {
+/**
+ * `artwork`: the framed hero piece. No axis labels or legend (the wall label
+ * carries the context) and edge-to-edge bands; hover still identifies an arm.
+ */
+export default function HeroStream({ artwork = false }: { artwork?: boolean }) {
   const [ref, width] = useElementWidth<HTMLDivElement>(900);
   const reduced = useReducedMotion();
   const [hover, setHover] = useState<number | null>(null);
   const [hoverArm, setHoverArm] = useState<number | null>(null);
-  const H = width < 560 ? 170 : 220;
-  const M = { l: 8, r: 8, t: 6, b: 22 };
+  const H = artwork ? (width < 560 ? 200 : 300) : width < 560 ? 170 : 220;
+  const M = artwork ? { l: 0, r: 0, t: 0, b: 0 } : { l: 8, r: 8, t: 6, b: 22 };
   const x = scaleLinear().domain([COLS[0].it, COLS[COLS.length - 1].it]).range([M.l, width - M.r]);
   const y = scaleLinear().domain([0, 1]).range([H - M.b, M.t]);
 
@@ -57,7 +61,7 @@ export default function HeroStream() {
             />
           ))}
         </g>
-        {COLS.filter(
+        {!artwork && COLS.filter(
           (c, i) =>
             i === 0 ||
             i === COLS.length - 1 ||
@@ -122,7 +126,7 @@ export default function HeroStream() {
           <div className="mt-0.5 leading-snug">{arm.label}</div>
         </div>
       )}
-      <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[0.72rem]" style={{ color: "var(--cl-muted)" }}>
+      {!artwork && <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[0.72rem]" style={{ color: "var(--cl-muted)" }}>
         {NAMED.map((a) => (
           <span key={a.p} className="inline-flex items-center gap-1">
             <span className="inline-block size-2.5 rounded-sm" style={{ background: armColor(a.p) }} />P{a.p}
@@ -136,7 +140,7 @@ export default function HeroStream() {
           </span>
           +{REST.length} more weaknesses
         </span>
-      </div>
+      </div>}
     </div>
   );
 }
