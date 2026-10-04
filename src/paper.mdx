@@ -210,18 +210,16 @@ Replacing the Exploration Controller with a fixed schedule (explore every 5 iter
 
 We introduced ActiveSaddler, an automated curriculum-learning approach for harness optimization that adapts which training scenarios generate the execution feedback used for each harness update. Rather than fixing scenario selection before optimization, ActiveSaddler formulates curriculum construction as a non-stationary bandit that dynamically instantiates failure-pattern arms, prioritizes them by their evolving learning potential, and balances revisiting known weaknesses with exploring unseen scenarios. Across GAIA2 and Terminal-Bench 2.0, ActiveSaddler improves test Pass@1 by **4.4** and **7.5** percentage points over the same harness optimizer with a fixed scenario order, respectively, while also outperforming existing harness optimizers and fixed curricula. Our ablations further show that these gains rely on failure-pattern arms, adaptive arm prioritization, and adaptive exploration. Overall, these results establish automated curriculum learning as a complementary dimension of harness optimization: performance depends not only on how feedback is used for updates, but also on which training scenarios generate that feedback.
 
-{/*
-BibTeX is hidden for now; restore it by deleting this comment wrapper once the
-arXiv entry is final.
-
 ## BibTeX
 
 ```bibtex
-@article{park2026activesaddler,
-  title={ActiveSaddler: Automated Curriculum Learning for Agent Harness Optimization},
-  author={Sungho Park and Wonjoong Kim and Jue Zhang and Wook-Shin Han and Pengfei Gao and Chanyoung Park and Yongqiang Yao and Rao Fu and Elsie Nallipogu and Qingwei Lin and Victor R{\"u}hle},
-  journal={arXiv preprint},
-  year={2026}
+@misc{park2026activesaddlerautomatedcurriculumlearning,
+      title={ActiveSaddler: Automated Curriculum Learning for Agent Harness Optimization}, 
+      author={Sungho Park and Wonjoong Kim and Jue Zhang and Wook-Shin Han and Pengfei Gao and Chanyoung Park and Yongqiang Yao and Rao Fu and Elsie Nallipogu and Qingwei Lin and Victor Rühle},
+      year={2026},
+      eprint={2610.00906},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2610.00906}, 
 }
 ```
-*/}
